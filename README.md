@@ -1,2 +1,2 @@
-# long_reads_analysis
+# Nanosake
 A Snakemake workflow to basecall, assemble and assess long reads data/assembly.
