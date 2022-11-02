@@ -2,5 +2,4 @@
 A Snakemake workflow to basecall, assemble and assess long reads data/assembly.
 
 ![Alt text](./dag.svg)
-<img src="./dag.svg">
 
