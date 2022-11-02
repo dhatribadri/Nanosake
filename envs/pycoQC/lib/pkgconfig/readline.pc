@@ -1,0 +1,12 @@
+prefix=/nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/envs/pycoQC
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: Readline
+Description: Gnu Readline library for command line editing
+URL: http://tiswww.cwru.edu/php/chet/readline/rltop.html
+Version: 8.1
+Requires.private: tinfo
+Libs: -L${libdir} -lreadline
+Cflags: -I${includedir}

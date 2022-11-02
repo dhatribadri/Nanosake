@@ -1,0 +1,47 @@
+{
+  "build": "h4ff8645_0",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/conda-forge/linux-64",
+  "constrains": [],
+  "depends": [
+    "libgcc-ng >=12",
+    "libsqlite 3.39.4 h753d276_0",
+    "libzlib >=1.2.12,<1.3.0a0",
+    "ncurses >=6.3,<7.0a0",
+    "readline >=8.1.2,<9.0a0"
+  ],
+  "extracted_package_dir": "/home/apirani/.conda/pkgs/sqlite-3.39.4-h4ff8645_0",
+  "features": "",
+  "files": [
+    "bin/sqlite3"
+  ],
+  "fn": "sqlite-3.39.4-h4ff8645_0.tar.bz2",
+  "license": "Unlicense",
+  "link": {
+    "source": "/home/apirani/.conda/pkgs/sqlite-3.39.4-h4ff8645_0",
+    "type": 1
+  },
+  "md5": "643c271de2dd23ecbd107284426cebc2",
+  "name": "sqlite",
+  "package_tarball_full_path": "/home/apirani/.conda/pkgs/sqlite-3.39.4-h4ff8645_0.tar.bz2",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "bin/sqlite3",
+        "path_type": "hardlink",
+        "sha256": "523fafbfde3b080d70edff7ccd1c5abf0ef2b228b114e3d622268c3d30b2d782",
+        "sha256_in_prefix": "523fafbfde3b080d70edff7ccd1c5abf0ef2b228b114e3d622268c3d30b2d782",
+        "size_in_bytes": 1704976
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "b0a812bcdc8c622852e4769f66d1db8a2e437a867acf64067ce31f9a0181acc8",
+  "size": 807498,
+  "subdir": "linux-64",
+  "timestamp": 1664796226384,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/conda-forge/linux-64/sqlite-3.39.4-h4ff8645_0.tar.bz2",
+  "version": "3.39.4"
+}

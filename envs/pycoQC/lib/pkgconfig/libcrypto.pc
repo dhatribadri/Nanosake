@@ -1,0 +1,12 @@
+prefix=/nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/envs/pycoQC
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+enginesdir=${libdir}/engines-1.1
+
+Name: OpenSSL-libcrypto
+Description: OpenSSL cryptography library
+Version: 1.1.1q
+Libs: -L${libdir} -lcrypto
+Libs.private: -ldl -pthread 
+Cflags: -I${includedir}

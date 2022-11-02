@@ -1,0 +1,208 @@
+configfile: "config/config.yaml"
+
+import pandas as pd
+import os
+
+samples_df = pd.read_csv(config["samples"])
+BARCODE = list(samples_df['barcode_id'])
+SAMPLE = list(samples_df['sample_id'])
+PREFIX = config["prefix"]
+SHORTREADS = list(samples_df['sample_id'])
+
+os.system("mkdir results")
+samples_df['combination'] = samples_df[['barcode_id', 'sample_id']].agg('/'.join, axis=1)
+COMBINATION = list(samples_df['combination'])
+
+
+rule all:
+    input:
+        pycoqc_report = expand("results/pycoqc/{prefix}.html", prefix=PREFIX),
+        trim_r1 =  expand("results/trimmomatic/{barcode}/{sample}_R1_paired.fastq.gz", zip, barcode=BARCODE, sample=SAMPLE),
+        #trimmed = expand("results/porechop/{barcode}/{barcode}.trimmed.fastq", barcode=BARCODE),
+        #flye_assembly = expand("results/flye/{barcode}/", barcode=BARCODE),
+        #medaka_out = expand("results/medaka/{barcode}/", barcode=BARCODE),
+        #medaka_assembly = expand("results/medaka/{barcode}/consensus.fasta", zip, barcode=BARCODE),
+        # bwa_aligned_medaka = expand("results/polypolish/{barcode}/{sample}_1.sam", zip, barcode=BARCODE, sample=SAMPLE),
+        polypolish = expand("results/polypolish/{barcode}/{sample}_flye_medaka_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
+        # bwaindex = expand("results/medaka/{barcode}/consensus.fasta.bwt", barcode=BARCODE),
+        # trim_r1 =  expand("results/trimmomatic/{barcode}/{sample}_R1_paired.fastq.gz", zip, barcode=BARCODE, sample=SAMPLE),
+        # bwa_aligned_medaka = expand("results/medaka/{barcode}/{sample}_1.sam", zip, barcode=BARCODE, sample=SAMPLE),
+        # filter_sam_1 = expand("results/medaka/{barcode}/{sample}_flye_medaka_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
+        # compared_out = expand("results/compare/{barcode}/{sample}_flye-medaka_to_polypolish_comparison", zip, barcode=BARCODE, sample=SAMPLE),
+        #unicycler_assembly = expand("results/unicycler/{barcode}/{sample}", zip, barcode=BARCODE, sample=SAMPLE),
+        #bwa_aligned_unicycler = expand("results/polypolish_unicycler/{barcode}/{sample}_1.sam", zip, barcode=BARCODE, sample=SAMPLE),
+        polypolish_unicycler = expand("results/polypolish_unicycler/{barcode}/{sample}_unicycler_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
+        #unicycler_polypolish = expand("results/unicycler/{barcode}/{sample}_unicycler_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
+rule pycoqc:
+    input:
+        seq_summary = config["long_reads"] + "/sequencing_summary.txt",
+    output:
+       "results/pycoqc/{prefix}.html",
+    log:
+        "logs/pycoqc/{prefix}.log"        
+    conda:
+        "envs/pycoqc.yaml"
+    shell:
+       'pycoQC -f {input.seq_summary} -o {output}'
+
+rule trim_nano_adaptors:
+    input:
+        longreads = config["long_reads"] + "/{barcode}/",
+    output:
+        trimmed = "results/porechop/{barcode}/{barcode}.trimmed.fastq"
+    log:
+        "logs/porechop/{barcode}.log"        
+    conda:
+        "envs/porechop.yaml"
+    shell:
+        'porechop -i {input.longreads} -o {output.trimmed} -t 8 --discard_middle'
+
+rule flye:
+    input:
+        trimmed = "results/porechop/{barcode}/{barcode}.trimmed.fastq",
+    output:
+        assembly = directory("results/flye/{barcode}"),
+    params:
+        size = config["genome_size"],
+        threads = config["threads"],
+        flye_options = config["flye_options"],
+    conda:
+        "envs/flye.yaml"
+    shell:
+        "flye --nano-hq {input.trimmed} -g {params.size} -o {output.assembly} -t {params.threads} {params.flye_options}"
+
+
+rule medaka:
+    input:
+        flye_assembly = "results/flye/{barcode}",
+        trimmed = "results/porechop/{barcode}/{barcode}.trimmed.fastq",
+    output:
+        #medaka_out_dir = directory("results/medaka/{barcode}"),
+        medaka_out = f"results/medaka/{{barcode}}/consensus.fasta"
+    params:
+        medaka_out_dir = directory("results/medaka/{barcode}"),
+        threads = config["threads"],
+    conda:
+        "envs/medaka.yaml"
+    shell:
+        "medaka_consensus -i {input.trimmed} -d {input.flye_assembly}/assembly.fasta -o {params.medaka_out_dir} -t {params.threads} -m r941_min_high_g303 && bwa index {params.medaka_out_dir}/consensus.fasta"
+
+
+rule trimmomatic_pe:
+    input:
+        r1 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_L001_R1_001.fastq.gz")),
+        r2 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_L001_R2_001.fastq.gz")),
+    output:
+        r1 = f"results/trimmomatic/{{barcode}}/{{sample}}_R1_paired.fastq.gz",
+        r2 = f"results/trimmomatic/{{barcode}}/{{sample}}_R2_paired.fastq.gz", 
+        # reads where trimming entirely removed the mate
+        r1_unpaired = f"results/trimmomatic/{{barcode}}/{{sample}}_R1_unpaired.fastq.gz",
+        r2_unpaired = f"results/trimmomatic/{{barcode}}/{{sample}}_R2_unpaired.fastq.gz",
+        
+
+    params:
+        adapter_filepath=config["adapter_file"],
+        seed=config["seed_mismatches"],
+        palindrome_clip=config["palindrome_clipthreshold"],
+        simple_clip=config["simple_clipthreshold"],
+        minadapterlength=config["minadapterlength"],
+        keep_both_reads=config["keep_both_reads"],
+        window_size=config["window_size"],
+        window_size_quality=config["window_size_quality"],
+        minlength=config["minlength"],
+        headcrop_length=config["headcrop_length"],
+        threads = config["ncores"],
+    conda:
+        "envs/trimmomatic.yaml"
+    shell:
+        "trimmomatic PE {input.r1} {input.r2} {output.r1} {output.r1_unpaired} {output.r2} {output.r2_unpaired} -threads {params.threads} ILLUMINACLIP:{params.adapter_filepath}:{params.seed}:{params.palindrome_clip}:{params.simple_clip}:{params.minadapterlength}:{params.keep_both_reads} SLIDINGWINDOW:{params.window_size}:{params.window_size_quality} MINLEN:{params.minlength} HEADCROP:{params.headcrop_length}"
+
+rule bwaalign:
+    input:
+        r1 = lambda wildcards: expand("results/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}_R1_paired.fastq.gz"),
+        r2 = lambda wildcards: expand("results/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}_R2_paired.fastq.gz"),
+        medaka_assembly = f"results/medaka/{{barcode}}/consensus.fasta"
+    output:
+        samout_1 = f"results/polypolish/{{barcode}}/{{sample}}_1.sam",
+        samout_2 = f"results/polypolish/{{barcode}}/{{sample}}_2.sam",
+    params:
+        threads = config["ncores"],
+    conda:
+        "envs/bwa.yaml"
+    shell:
+        "bwa mem -t12 -a {input.medaka_assembly} {input.r1} > {output.samout_1} && bwa mem -t12 -a {input.medaka_assembly} {input.r2} > {output.samout_2}"
+
+rule bwaalign_unicycler:
+    input:
+        r1 = lambda wildcards: expand("results/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}_R1_paired.fastq.gz"),
+        r2 = lambda wildcards: expand("results/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}_R2_paired.fastq.gz"),
+        unicycler_assembly = f"results/unicycler/{{barcode}}/{{sample}}/assembly.fasta"
+    output:
+        samout_1 = f"results/polypolish_unicycler/{{barcode}}/{{sample}}_1.sam",
+        samout_2 = f"results/polypolish_unicycler/{{barcode}}/{{sample}}_2.sam",
+    params:
+        threads = config["ncores"],
+    conda:
+        "envs/bwa.yaml"
+    shell:
+        "bwa index {input.unicycler_assembly} && bwa mem -t12 -a {input.unicycler_assembly} {input.r1} > {output.samout_1} && bwa mem -t12 -a {input.unicycler_assembly} {input.r2} > {output.samout_2}"
+
+rule polypolish:
+    input:
+        r1 = lambda wildcards: expand("results/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}_R1_paired.fastq.gz"),
+        r2 = lambda wildcards: expand("results/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}_R2_paired.fastq.gz"),
+        medaka_assembly = f"results/medaka/{{barcode}}/consensus.fasta",
+        samout_1 = lambda wildcards: expand("results/polypolish/" + f"{wildcards.barcode}/{wildcards.sample}_1.sam"),
+        samout_2 = lambda wildcards: expand("results/polypolish/" + f"{wildcards.barcode}/{wildcards.sample}_2.sam"),
+    output:
+        # samout_1 = f"results/polypolish/{{barcode}}/{{sample}}_1.sam",
+        # samout_2 = f"results/polypolish/{{barcode}}/{{sample}}_2.sam",
+        filtersam1 = f"results/polypolish/{{barcode}}/{{sample}}_filtered_1.sam",
+        filtersam2 = f"results/polypolish/{{barcode}}/{{sample}}_filtered_2.sam",
+        flye_medaka_polypolish = f"results/polypolish/{{barcode}}/{{sample}}_flye_medaka_polypolish.fasta",
+    params:
+        threads = config["ncores"],
+    conda:
+        "envs/polypolish.yaml"
+    shell:
+        "polypolish_insert_filter.py --in1 {input.samout_1} --in2 {input.samout_2} --out1 {output.filtersam1} --out2 {output.filtersam2}  && polypolish {input.medaka_assembly} {output.filtersam1} {output.filtersam2} > {output.flye_medaka_polypolish}"
+
+rule unicycler:
+    input:
+        r1 = lambda wildcards: expand("results/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}_R1_paired.fastq.gz"),
+        r2 = lambda wildcards: expand("results/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}_R2_paired.fastq.gz"),
+        trimmed_long = f"results/porechop/{{barcode}}/{{barcode}}.trimmed.fastq"
+    output:
+        #unicycler_assembly = directory("results/unicycler/{{barcode}}/{{sample}}"),
+        #unicycler_assembly = directory("results/unicycler/{{barcode}}/{{sample}}"),
+        unicycler_assembly = f"results/unicycler/{{barcode}}/{{sample}}/assembly.fasta",
+    params:
+        unicycler_assembly_out = directory("results/unicycler/{{barcode}}/{{sample}}"),
+        threads = config["ncores"],
+    conda:
+        "envs/unicycler.yaml"
+    shell:
+        "unicycler -1 {input.r1} -2 {input.r2} -l {input.trimmed_long} -o {params.unicycler_assembly_out}"
+
+rule polypolish_unicycler:
+    input:
+        r1 = lambda wildcards: expand("results/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}_R1_paired.fastq.gz"),
+        r2 = lambda wildcards: expand("results/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}_R2_paired.fastq.gz"),
+        unicycler_assembly = f"results/unicycler/{{barcode}}/{{sample}}/assembly.fasta",
+        samout_1 = lambda wildcards: expand("results/polypolish_unicycler/" + f"{wildcards.barcode}/{wildcards.sample}_1.sam"),
+        samout_2 = lambda wildcards: expand("results/polypolish_unicycler/" + f"{wildcards.barcode}/{wildcards.sample}_2.sam"),
+    output:
+        # samout_1 = f"results/polypolish/{{barcode}}/{{sample}}_1.sam",
+        # samout_2 = f"results/polypolish/{{barcode}}/{{sample}}_2.sam",
+        filtersam1 = f"results/polypolish_unicycler/{{barcode}}/{{sample}}_filtered_1.sam",
+        filtersam2 = f"results/polypolish_unicycler/{{barcode}}/{{sample}}_filtered_2.sam",
+        unicycler_polypolish = f"results/polypolish_unicycler/{{barcode}}/{{sample}}_unicycler_polypolish.fasta",
+    params:
+        threads = config["ncores"],
+    conda:
+        "envs/polypolish.yaml"
+    shell:
+        "polypolish_insert_filter.py --in1 {input.samout_1} --in2 {input.samout_2} --out1 {output.filtersam1} --out2 {output.filtersam2}  && polypolish {input.unicycler_assembly} {output.filtersam1} {output.filtersam2} > {output.unicycler_polypolish}"
+
+
+

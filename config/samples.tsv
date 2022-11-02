@@ -1,0 +1,2 @@
+barcode_id,sample_id,illumina_r1,illumina_r2
+barcode01,309a,309a_L001_R1_001.fastq.gz,309a_L001_R2_001.fastq.gz

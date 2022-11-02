@@ -1,0 +1,8 @@
+name: nanosake
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+  - anaconda
+dependencies:
+  - bioconda::snakemake=6.15.5

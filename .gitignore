@@ -1,0 +1,5 @@
+results/
+2022_11_01_backup/
+results_backup
+results_final
+.snakemake
