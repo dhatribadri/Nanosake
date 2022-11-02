@@ -18,21 +18,9 @@ rule all:
     input:
         pycoqc_report = expand("results/pycoqc/{prefix}.html", prefix=PREFIX),
         trim_r1 =  expand("results/trimmomatic/{barcode}/{sample}_R1_paired.fastq.gz", zip, barcode=BARCODE, sample=SAMPLE),
-        #trimmed = expand("results/porechop/{barcode}/{barcode}.trimmed.fastq", barcode=BARCODE),
-        #flye_assembly = expand("results/flye/{barcode}/", barcode=BARCODE),
-        #medaka_out = expand("results/medaka/{barcode}/", barcode=BARCODE),
-        #medaka_assembly = expand("results/medaka/{barcode}/consensus.fasta", zip, barcode=BARCODE),
-        # bwa_aligned_medaka = expand("results/polypolish/{barcode}/{sample}_1.sam", zip, barcode=BARCODE, sample=SAMPLE),
         polypolish = expand("results/polypolish/{barcode}/{sample}_flye_medaka_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
-        # bwaindex = expand("results/medaka/{barcode}/consensus.fasta.bwt", barcode=BARCODE),
-        # trim_r1 =  expand("results/trimmomatic/{barcode}/{sample}_R1_paired.fastq.gz", zip, barcode=BARCODE, sample=SAMPLE),
-        # bwa_aligned_medaka = expand("results/medaka/{barcode}/{sample}_1.sam", zip, barcode=BARCODE, sample=SAMPLE),
-        # filter_sam_1 = expand("results/medaka/{barcode}/{sample}_flye_medaka_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
-        # compared_out = expand("results/compare/{barcode}/{sample}_flye-medaka_to_polypolish_comparison", zip, barcode=BARCODE, sample=SAMPLE),
-        #unicycler_assembly = expand("results/unicycler/{barcode}/{sample}", zip, barcode=BARCODE, sample=SAMPLE),
-        #bwa_aligned_unicycler = expand("results/polypolish_unicycler/{barcode}/{sample}_1.sam", zip, barcode=BARCODE, sample=SAMPLE),
         polypolish_unicycler = expand("results/polypolish_unicycler/{barcode}/{sample}_unicycler_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
-        #unicycler_polypolish = expand("results/unicycler/{barcode}/{sample}_unicycler_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
+
 rule pycoqc:
     input:
         seq_summary = config["long_reads"] + "/sequencing_summary.txt",
