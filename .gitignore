@@ -3,3 +3,4 @@ results/
 results_backup
 results_final
 .snakemake
+resources
