@@ -20,7 +20,8 @@ rule all:
         trim_r1 =  expand("results/trimmomatic/{barcode}/{sample}_R1_paired.fastq.gz", zip, barcode=BARCODE, sample=SAMPLE),
         polypolish = expand("results/polypolish/{barcode}/{sample}_flye_medaka_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
         polypolish_unicycler = expand("results/polypolish_unicycler/{barcode}/{sample}_unicycler_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
-
+        prokka = expand("results/prokka/{barcode}/{sample}/{sample}_unicycler/{sample}_unicycler.gff", zip, barcode=BARCODE, sample=SAMPLE),
+        
 rule pycoqc:
     input:
         seq_summary = config["long_reads"] + "/sequencing_summary.txt",
@@ -85,8 +86,6 @@ rule trimmomatic_pe:
         # reads where trimming entirely removed the mate
         r1_unpaired = f"results/trimmomatic/{{barcode}}/{{sample}}_R1_unpaired.fastq.gz",
         r2_unpaired = f"results/trimmomatic/{{barcode}}/{{sample}}_R2_unpaired.fastq.gz",
-        
-
     params:
         adapter_filepath=config["adapter_file"],
         seed=config["seed_mismatches"],
@@ -184,3 +183,22 @@ rule polypolish_unicycler:
         "envs/polypolish.yaml"
     shell:
         "polypolish_insert_filter.py --in1 {input.samout_1} --in2 {input.samout_2} --out1 {output.filtersam1} --out2 {output.filtersam2}  && polypolish {input.unicycler_assembly} {output.filtersam1} {output.filtersam2} > {output.unicycler_polypolish}"
+
+rule prokka:
+    input:
+        unicycler_assembly = lambda wildcards: expand("results/unicycler/" + f"{wildcards.barcode}/{wildcards.sample}/assembly.fasta"),
+        medaka_assembly = lambda wildcards: expand("results/medaka/" + f"{wildcards.barcode}/consensus.fasta"),
+        unicycler_polypolish = f"results/polypolish_unicycler/{{barcode}}/{{sample}}_unicycler_polypolish.fasta",
+        flye_assembly = lambda wildcards: expand("results/flye/" + f"{wildcards.barcode}/assembly.fasta"),
+        flye_medaka_polypolish = f"results/polypolish/{{barcode}}/{{sample}}_flye_medaka_polypolish.fasta",
+    output:
+        unicycler_annotation = f"results/prokka/{{barcode}}/{{sample}}/{{sample}}_unicycler/{{sample}}_unicycler.gff",
+    params:
+        threads = config["ncores"],
+        prefix = f"{{sample}}",
+        options = config["prokka_options"],
+        prokka_dir = directory("results/prokka/{barcode}/{sample}"),
+    conda:
+        "envs/prokka.yaml"
+    shell:
+        "prokka {params.options} -outdir {params.prokka_dir} -prefix {params.prefix}_unicycler {input.unicycler_assembly} && prokka {params.options} -outdir {params.prokka_dir} -prefix {params.prefix}_flye {input.flye_assembly} && prokka {params.options} -outdir {params.prokka_dir} -prefix {params.prefix}_medaka {input.medaka_assembly} && prokka {params.options} -outdir {params.prokka_dir} -prefix {params.prefix}_flye_medaka_polypolish {input.flye_medaka_polypolish} && prokka {params.options} -outdir {params.prokka_dir} -prefix {params.prefix}_unicycler_polypolish {input.unicycler_polypolish}"

@@ -24,7 +24,7 @@ reference_stb: resources/Aus0004.stb
 flye_options: --plasmids --trestle --debug
 
 
-# Command line parameters for rule trimmomatic_pe - trimmomatic.smk
+# Command line parameters for rule trimmomatic_pe
 adapter_file: config/adapters/NexteraPE-PE.fa
 seed_mismatches: 2
 palindrome_clipthreshold: 30
@@ -35,3 +35,6 @@ window_size: 4
 window_size_quality: 20
 minlength: 40
 headcrop_length: 0
+
+# Command line parameters for rule prokka
+prokka_options: --force --kingdom Bacteria --rfam
