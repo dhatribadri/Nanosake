@@ -20,8 +20,9 @@ rule all:
         trim_r1 =  expand("results/trimmomatic/{barcode}/{sample}_R1_paired.fastq.gz", zip, barcode=BARCODE, sample=SAMPLE),
         polypolish = expand("results/polypolish/{barcode}/{sample}_flye_medaka_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
         polypolish_unicycler = expand("results/polypolish_unicycler/{barcode}/{sample}_unicycler_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
-        prokka = expand("results/prokka/{barcode}/{sample}/{sample}_unicycler/{sample}_unicycler.gff", zip, barcode=BARCODE, sample=SAMPLE),
-        
+        prokka = expand("results/prokka/{barcode}/{sample}_unicycler/{sample}_unicycler.gff", zip, barcode=BARCODE, sample=SAMPLE),
+        quast_out = expand("results/quast/{barcode}/{sample}_unicycler/report.html", zip, barcode=BARCODE, sample=SAMPLE),
+
 rule pycoqc:
     input:
         seq_summary = config["long_reads"] + "/sequencing_summary.txt",
@@ -192,7 +193,7 @@ rule prokka:
         flye_assembly = lambda wildcards: expand("results/flye/" + f"{wildcards.barcode}/assembly.fasta"),
         flye_medaka_polypolish = f"results/polypolish/{{barcode}}/{{sample}}_flye_medaka_polypolish.fasta",
     output:
-        unicycler_annotation = f"results/prokka/{{barcode}}/{{sample}}/{{sample}}_unicycler/{{sample}}_unicycler.gff",
+        unicycler_annotation = f"results/prokka/{{barcode}}/{{sample}}_unicycler/{{sample}}_unicycler.gff",
     params:
         threads = config["ncores"],
         prefix = f"{{sample}}",
@@ -201,4 +202,22 @@ rule prokka:
     conda:
         "envs/prokka.yaml"
     shell:
-        "prokka {params.options} -outdir {params.prokka_dir} -prefix {params.prefix}_unicycler {input.unicycler_assembly} && prokka {params.options} -outdir {params.prokka_dir} -prefix {params.prefix}_flye {input.flye_assembly} && prokka {params.options} -outdir {params.prokka_dir} -prefix {params.prefix}_medaka {input.medaka_assembly} && prokka {params.options} -outdir {params.prokka_dir} -prefix {params.prefix}_flye_medaka_polypolish {input.flye_medaka_polypolish} && prokka {params.options} -outdir {params.prokka_dir} -prefix {params.prefix}_unicycler_polypolish {input.unicycler_polypolish}"
+        "prokka {params.options} -outdir {params.prokka_dir}_unicycler -prefix {params.prefix}_unicycler {input.unicycler_assembly} && prokka {params.options} -outdir {params.prokka_dir}_flye -prefix {params.prefix}_flye {input.flye_assembly} && prokka {params.options} -outdir {params.prokka_dir}_medaka -prefix {params.prefix}_medaka {input.medaka_assembly} && prokka {params.options} -outdir {params.prokka_dir}_flye_medaka_polypolish -prefix {params.prefix}_flye_medaka_polypolish {input.flye_medaka_polypolish} && prokka {params.options} -outdir {params.prokka_dir}_unicycler_polypolish -prefix {params.prefix}_unicycler_polypolish {input.unicycler_polypolish}"
+
+
+rule quast:
+    input:
+        unicycler_assembly = lambda wildcards: expand("results/unicycler/" + f"{wildcards.barcode}/{wildcards.sample}/assembly.fasta"),
+        medaka_assembly = lambda wildcards: expand("results/medaka/" + f"{wildcards.barcode}/consensus.fasta"),
+        unicycler_polypolish = f"results/polypolish_unicycler/{{barcode}}/{{sample}}_unicycler_polypolish.fasta",
+        flye_assembly = lambda wildcards: expand("results/flye/" + f"{wildcards.barcode}/assembly.fasta"),
+        flye_medaka_polypolish = f"results/polypolish/{{barcode}}/{{sample}}_flye_medaka_polypolish.fasta",
+    output:
+        quast_out = f"results/quast/{{barcode}}/{{sample}}_unicycler/report.html",
+    params:
+        threads = config["ncores"],
+        quast_dir = directory("results/quast/{barcode}/{sample}"),
+    conda:
+        "envs/quast.yaml"
+    shell:
+        "quast {input.unicycler_assembly} -o {params.quast_dir}_unicycler && quast {input.medaka_assembly} -o {params.quast_dir}_medaka && quast {input.unicycler_polypolish} -o {params.quast_dir}_unicycler_polypolish && quast {input.flye_medaka_polypolish} -o {params.quast_dir}_flye_medaka_polypolish && quast {input.flye_assembly } -o {params.quast_dir}_flye"
