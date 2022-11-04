@@ -1,3 +1,4 @@
+# Author: Ali Pirani
 configfile: "config/config.yaml"
 
 import pandas as pd
@@ -9,10 +10,11 @@ SAMPLE = list(samples_df['sample_id'])
 PREFIX = config["prefix"]
 SHORTREADS = list(samples_df['sample_id'])
 
-os.system("mkdir results")
 samples_df['combination'] = samples_df[['barcode_id', 'sample_id']].agg('/'.join, axis=1)
 COMBINATION = list(samples_df['combination'])
 
+if not os.path.exists("results"):
+    os.system("mkdir results")
 
 rule all:
     input:
@@ -22,7 +24,7 @@ rule all:
         polypolish_unicycler = expand("results/polypolish_unicycler/{barcode}/{sample}_unicycler_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE),
         prokka = expand("results/prokka/{barcode}/{sample}_unicycler/{sample}_unicycler.gff", zip, barcode=BARCODE, sample=SAMPLE),
         quast_out = expand("results/quast/{barcode}/{sample}_unicycler/report.html", zip, barcode=BARCODE, sample=SAMPLE),
-
+        busco_out = expand("results/busco/{barcode}/{sample}_busco/run_bacteria_odb10/short_summary.txt", zip, barcode=BARCODE, sample=SAMPLE),
 rule pycoqc:
     input:
         seq_summary = config["long_reads"] + "/sequencing_summary.txt",
@@ -221,3 +223,21 @@ rule quast:
         "envs/quast.yaml"
     shell:
         "quast {input.unicycler_assembly} -o {params.quast_dir}_unicycler && quast {input.medaka_assembly} -o {params.quast_dir}_medaka && quast {input.unicycler_polypolish} -o {params.quast_dir}_unicycler_polypolish && quast {input.flye_medaka_polypolish} -o {params.quast_dir}_flye_medaka_polypolish && quast {input.flye_assembly } -o {params.quast_dir}_flye"
+
+
+rule busco:
+    input:
+        unicycler_assembly = lambda wildcards: expand("results/unicycler/" + f"{wildcards.barcode}/{wildcards.sample}/assembly.fasta"),
+        medaka_assembly = lambda wildcards: expand("results/medaka/" + f"{wildcards.barcode}/consensus.fasta"),
+        unicycler_polypolish = f"results/polypolish_unicycler/{{barcode}}/{{sample}}_unicycler_polypolish.fasta",
+        flye_assembly = lambda wildcards: expand("results/flye/" + f"{wildcards.barcode}/assembly.fasta"),
+        flye_medaka_polypolish = f"results/polypolish/{{barcode}}/{{sample}}_flye_medaka_polypolish.fasta",
+    output:
+        busco_out = f"results/busco/{{barcode}}/{{sample}}_busco/run_bacteria_odb10/short_summary.txt",
+    params:
+        threads = config["ncores"],
+        busco_dir = directory("results/busco/{barcode}/{sample}"),
+    conda:
+        "envs/busco.yaml"
+    shell:
+        "busco -i {input.unicycler_assembly} -m genome -l bacteria_odb10 -o {params.busco_dir}_busco"

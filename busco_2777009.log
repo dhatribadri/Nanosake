@@ -1,0 +1,27 @@
+2022-11-04 10:13:53 DEBUG:busco.run_BUSCO	Command line: /nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/.snakemake/conda/d66ab658ae68a0c008351e705867c1a5_/bin/busco -i results/unicycler/barcode01/309a/assembly.fasta -m genome -l bacteria_odb10 -o results/busco/barcode01/309a_busco
+2022-11-04 10:13:53 INFO:busco.run_BUSCO	***** Start a BUSCO v5.4.2 analysis, current time: 11/04/2022 10:13:53 *****
+2022-11-04 10:13:53 DEBUG:busco.ConfigManager	Getting config file
+2022-11-04 10:13:53 INFO:busco.ConfigManager	Configuring BUSCO with local environment
+2022-11-04 10:13:53 INFO:busco.BuscoConfig	Mode is genome
+2022-11-04 10:13:53 ERROR:busco.BuscoRunner	A run with the name /nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/results/busco/barcode01/309a_busco already exists...
+	If you are sure you wish to overwrite existing files, please use the -f (force) option
+2022-11-04 10:13:53 DEBUG:busco.BuscoRunner	A run with the name /nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/results/busco/barcode01/309a_busco already exists...
+	If you are sure you wish to overwrite existing files, please use the -f (force) option
+Traceback (most recent call last):
+  File "/nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/.snakemake/conda/d66ab658ae68a0c008351e705867c1a5_/lib/python3.7/site-packages/busco/run_BUSCO.py", line 70, in run
+    self.load_config()
+  File "/nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/.snakemake/conda/d66ab658ae68a0c008351e705867c1a5_/lib/python3.7/site-packages/busco/run_BUSCO.py", line 62, in load_config
+    self.config_manager.load_busco_config_main()
+  File "/nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/.snakemake/conda/d66ab658ae68a0c008351e705867c1a5_/lib/python3.7/site-packages/busco/BuscoLogger.py", line 62, in wrapped_func
+    self.retval = func(*args, **kwargs)
+  File "/nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/.snakemake/conda/d66ab658ae68a0c008351e705867c1a5_/lib/python3.7/site-packages/busco/ConfigManager.py", line 58, in load_busco_config_main
+    self.config_main.validate()
+  File "/nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/.snakemake/conda/d66ab658ae68a0c008351e705867c1a5_/lib/python3.7/site-packages/busco/BuscoConfig.py", line 526, in validate
+    self._check_no_previous_run()
+  File "/nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/.snakemake/conda/d66ab658ae68a0c008351e705867c1a5_/lib/python3.7/site-packages/busco/BuscoConfig.py", line 740, in _check_no_previous_run
+    "please use the -f (force) option".format(self.main_out)
+busco.Exceptions.BatchFatalError: A run with the name /nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/results/busco/barcode01/309a_busco already exists...
+	If you are sure you wish to overwrite existing files, please use the -f (force) option
+2022-11-04 10:13:53 ERROR:busco.BuscoRunner	BUSCO analysis failed!
+2022-11-04 10:13:53 ERROR:busco.BuscoRunner	Check the logs, read the user guide (https://busco.ezlab.org/busco_userguide.html), and check the BUSCO issue board on https://gitlab.com/ezlab/busco/issues
+
