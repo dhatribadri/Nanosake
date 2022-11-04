@@ -4,3 +4,5 @@ results_backup
 results_final
 .snakemake
 resources
+busco_.*
+busco_downloads
