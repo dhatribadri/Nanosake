@@ -1,0 +1,95 @@
+Building DAG of jobs...
+Your conda installation is not configured to use strict channel priorities. This is however crucial for having robust and correct environments (for details, see https://conda-forge.org/docs/user/tipsandtricks.html). Please consider to configure strict priorities by executing 'conda config --set channel_priority strict'.
+Using shell: /usr/bin/bash
+Provided cluster nodes: 999
+Job stats:
+job                     count    min threads    max threads
+--------------------  -------  -------------  -------------
+all                         1              1              1
+busco                       1              1              1
+bwaalign                    1              1              1
+bwaalign_unicycler          1              1              1
+flye                        1              1              1
+medaka                      1              1              1
+multiqc                     1              1              1
+polypolish                  1              1              1
+polypolish_unicycler        1              1              1
+prokka                      1              1              1
+pycoqc                      1              1              1
+quast                       1              1              1
+trim_nano_adaptors          1              1              1
+trimmomatic_pe              1              1              1
+unicycler                   1              1              1
+total                      15              1              1
+
+Select jobs to execute...
+
+[Fri Nov  4 17:31:39 2022]
+rule pycoqc:
+    input: /nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/test_data/guppy_demultiplex/20210107_2213_MN35107_FAO13840_83e8e224/sequencing_summary.txt
+    output: results/20210107_2213_MN35107_FAO13840_83e8e224/pycoqc/20210107_2213_MN35107_FAO13840_83e8e224.html
+    log: logs/20210107_2213_MN35107_FAO13840_83e8e224/pycoqc/20210107_2213_MN35107_FAO13840_83e8e224.log
+    jobid: 1
+    reason: Missing output files: results/20210107_2213_MN35107_FAO13840_83e8e224/pycoqc/20210107_2213_MN35107_FAO13840_83e8e224.html
+    wildcards: prefix=20210107_2213_MN35107_FAO13840_83e8e224
+    resources: mem_mb=1000, disk_mb=1000, tmpdir=/tmp
+
+Submitted job 1 with external jobid 'Submitted batch job 44644788'.
+
+[Fri Nov  4 17:31:39 2022]
+rule trim_nano_adaptors:
+    input: /nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/test_data/guppy_demultiplex/20210107_2213_MN35107_FAO13840_83e8e224/barcode01
+    output: results/20210107_2213_MN35107_FAO13840_83e8e224/porechop/barcode01/309a/309a.trimmed.fastq
+    log: logs/20210107_2213_MN35107_FAO13840_83e8e224/porechop/barcode01/309a/309a.log
+    jobid: 6
+    reason: Missing output files: results/20210107_2213_MN35107_FAO13840_83e8e224/porechop/barcode01/309a/309a.trimmed.fastq
+    wildcards: prefix=20210107_2213_MN35107_FAO13840_83e8e224, barcode=barcode01, sample=309a
+    resources: mem_mb=1000, disk_mb=1000, tmpdir=/tmp
+
+Submitted job 6 with external jobid 'Submitted batch job 44644789'.
+
+[Fri Nov  4 17:31:39 2022]
+rule trimmomatic_pe:
+    input: /nfs/esnitkin/Project_KPC_LTACH/Sequence_data/fastq/2017_12_01_KPC_HGT/Final_fastq/309a_L001_R1_001.fastq.gz, /nfs/esnitkin/Project_KPC_LTACH/Sequence_data/fastq/2017_12_01_KPC_HGT/Final_fastq/309a_L001_R2_001.fastq.gz
+    output: results/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a_R1_paired.fastq.gz, results/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a_R2_paired.fastq.gz, results/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a_R1_unpaired.fastq.gz, results/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a_R2_unpaired.fastq.gz
+    log: logs/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a.log
+    jobid: 2
+    reason: Missing output files: results/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a_R1_paired.fastq.gz, results/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a_R2_paired.fastq.gz
+    wildcards: prefix=20210107_2213_MN35107_FAO13840_83e8e224, barcode=barcode01, sample=309a
+    resources: mem_mb=1000, disk_mb=1000, tmpdir=/tmp
+
+Submitted job 2 with external jobid 'Submitted batch job 44644790'.
+
+[Fri Nov  4 17:31:39 2022]
+rule multiqc:
+    input: results/20210107_2213_MN35107_FAO13840_83e8e224
+    output: results/20210107_2213_MN35107_FAO13840_83e8e224/multiqc
+    jobid: 14
+    reason: Missing output files: results/20210107_2213_MN35107_FAO13840_83e8e224/multiqc
+    wildcards: prefix=20210107_2213_MN35107_FAO13840_83e8e224
+    resources: mem_mb=1000, disk_mb=1000, tmpdir=/tmp
+
+Submitted job 14 with external jobid 'Submitted batch job 44644791'.
+[Fri Nov  4 17:33:18 2022]
+Error in rule multiqc:
+    jobid: 14
+    output: results/20210107_2213_MN35107_FAO13840_83e8e224/multiqc
+    conda-env: /nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/.snakemake/conda/0a0daba2858021fc0d742c6f632e18db_
+    shell:
+        multiqc -o results/20210107_2213_MN35107_FAO13840_83e8e224/multiqc -f results/20210107_2213_MN35107_FAO13840_83e8e224
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+    cluster_jobid: Submitted batch job 44644791
+
+Error executing rule multiqc on cluster (jobid: 14, external: Submitted batch job 44644791, jobscript: /nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/.snakemake/tmp.526vg2e6/snakejob.multiqc.14.sh). For error details see the cluster log and the log files of the involved rule(s).
+[Fri Nov  4 17:33:49 2022]
+Finished job 2.
+1 of 15 steps (7%) done
+[Fri Nov  4 17:35:19 2022]
+Finished job 1.
+2 of 15 steps (13%) done
+[Fri Nov  4 17:37:59 2022]
+Finished job 6.
+3 of 15 steps (20%) done
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2022-11-04T173124.265876.snakemake.log

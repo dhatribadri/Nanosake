@@ -1,0 +1,22 @@
+Building DAG of jobs...
+Your conda installation is not configured to use strict channel priorities. This is however crucial for having robust and correct environments (for details, see https://conda-forge.org/docs/user/tipsandtricks.html). Please consider to configure strict priorities by executing 'conda config --set channel_priority strict'.
+Using shell: /usr/bin/bash
+Provided cores: 4
+Rules claiming more threads will be scaled down.
+Provided resources: mem_mb=1000, disk_mb=1000
+Select jobs to execute...
+
+[Fri Nov  4 17:32:25 2022]
+rule trimmomatic_pe:
+    input: /nfs/esnitkin/Project_KPC_LTACH/Sequence_data/fastq/2017_12_01_KPC_HGT/Final_fastq/309a_L001_R1_001.fastq.gz, /nfs/esnitkin/Project_KPC_LTACH/Sequence_data/fastq/2017_12_01_KPC_HGT/Final_fastq/309a_L001_R2_001.fastq.gz
+    output: results/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a_R1_paired.fastq.gz, results/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a_R2_paired.fastq.gz, results/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a_R1_unpaired.fastq.gz, results/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a_R2_unpaired.fastq.gz
+    log: logs/20210107_2213_MN35107_FAO13840_83e8e224/trimmomatic/barcode01/309a/309a.log
+    jobid: 0
+    reason: Forced execution
+    wildcards: prefix=20210107_2213_MN35107_FAO13840_83e8e224, barcode=barcode01, sample=309a
+    resources: mem_mb=1000, disk_mb=1000, tmpdir=/tmp
+
+Activating conda environment: .snakemake/conda/2906afe7a1ff1fea0164fc65c2128939_
+[Fri Nov  4 17:33:28 2022]
+Finished job 0.
+1 of 1 steps (100%) done
