@@ -1,5 +1,0 @@
-2022-11-04 10:18:57 INFO:__main__	****************** Start plot generation at 11/04/2022 10:18:57 ******************
-2022-11-04 10:18:57 INFO:__main__	Load data ...
-2022-11-04 10:18:57 WARNING:__main__	No files matching the pattern short_summary.generic were found in /nfs/turbo/umms-esnitkin/Project_ONT/Analysis/2021_11_30_ONT_snakemake/Nanosake/results/busco/barcode01/309a_busco/run_bacteria_odb10/
-2022-11-04 10:18:57 ERROR:__main__	Plot generation failed !
-2022-11-04 10:18:57 INFO:__main__	Check the logs, read the user guide, and check the BUSCO issue board on https://gitlab.com/ezlab/busco/issues
