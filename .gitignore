@@ -6,3 +6,6 @@ results_final
 resources
 busco_.*
 busco_downloads
+logs
+slurm*
+*.sbat
