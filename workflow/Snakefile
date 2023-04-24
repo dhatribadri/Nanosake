@@ -10,25 +10,32 @@ SAMPLE = list(samples_df['sample_id'])
 PREFIX = config["prefix"]
 SHORTREADS = list(samples_df['sample_id'])
 
-samples_df['combination'] = samples_df[['barcode_id', 'sample_id']].agg('/'.join, axis=1)
-COMBINATION = list(samples_df['combination'])
+samples_df['combination_1'] = samples_df[['barcode_id', 'sample_id', 'sample_id']].agg('/'.join, axis=1)
+COMBINATION_1 = list(samples_df['combination_1'])
+
+samples_df['combination_2'] = samples_df[['barcode_id', 'sample_id']].agg('/'.join, axis=1)
+COMBINATION_2 = list(samples_df['combination_2'])
 
 if not os.path.exists("results/" + PREFIX):
     os.system("mkdir %s" % "results/" + PREFIX)
 
+# print (COMBINATION_1)
+# print (COMBINATION_2)
+
+
 rule all:
     input:
         pycoqc_report = expand("results/{prefix}/pycoqc/{prefix}.html", prefix=PREFIX),
-        trim_r1 =  expand("results/{prefix}/trimmomatic/{barcode}/{sample}/{sample}_R1_paired.fastq.gz", zip, barcode=BARCODE, sample=SAMPLE, prefix=PREFIX),
-        # trimmed = expand("results/{prefix}/porechop/{barcode}/{sample}/{sample}.trimmed.fastq", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX),
-        # flye_assembly = expand("results/{prefix}/flye/{barcode}/{sample}/{sample}_flye.fasta", zip, barcode=BARCODE, sample=SAMPLE, prefix=PREFIX),
-        # medaka_out = expand("results/{prefix}/medaka/{barcode}/{sample}/{sample}_medaka.fasta", zip, barcode=BARCODE, sample=SAMPLE, prefix=PREFIX),
-        polypolish = expand("results/{prefix}/polypolish/{barcode}/{sample}_flye_medaka_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE, prefix=PREFIX),
-        polypolish_unicycler = expand("results/{prefix}/polypolish_unicycler/{barcode}/{sample}/{sample}_unicycler_polypolish.fasta", zip, barcode=BARCODE, sample=SAMPLE, prefix=PREFIX),
-        prokka = expand("results/{prefix}/prokka/{barcode}/{sample}/", zip, barcode=BARCODE, sample=SAMPLE, prefix=PREFIX),
-        quast_out = expand("results/{prefix}/quast/{barcode}/{sample}/{sample}", zip, barcode=BARCODE, sample=SAMPLE, prefix=PREFIX),
-        busco_out = expand("results/{prefix}/busco/{barcode}/{sample}/{sample}_busco", zip, barcode=BARCODE, sample=SAMPLE, prefix=PREFIX),
-        multiqc_out = "results/%s/multiqc" % config["prefix"]
+        trim_r1 =  expand("results/{prefix}/trimmomatic/{combination}_R1_paired.fastq.gz", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
+        # trimmed = expand("results/{prefix}/porechop/{combination}.trimmed.fastq", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
+        # flye_assembly = expand("results/{prefix}/flye/{combination}_flye.fasta", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
+        # medaka_out = expand("results/{prefix}/medaka/{combination}_medaka.fasta", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
+        polypolish = expand("results/{prefix}/polypolish/{combination}_flye_medaka_polypolish.fasta", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
+        polypolish_unicycler = expand("results/{prefix}/polypolish_unicycler/{combination}_unicycler_polypolish.fasta", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
+        prokka = expand("results/{prefix}/prokka/{combination}_unicycler.gff", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX,combination=COMBINATION_1),
+        quast_out = expand("results/{prefix}/quast/{combination}_unicycler/report.txt", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
+        busco_out = expand("results/{prefix}/busco/{combination}.unicycler/busco_unicycler.txt", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
+        multiqc_out = expand("results/{prefix}/multiqc/multiqc_report.html", prefix=PREFIX),
 
 rule pycoqc:
     input:
@@ -59,48 +66,11 @@ rule trim_nano_adaptors:
     shell:
         'porechop -i {input.longreads} -o {output.trimmed} -t 8 --discard_middle &>{log}'
 
-rule flye:
-    input:
-        trimmed = "results/{prefix}/porechop/{barcode}/{sample}/{sample}.trimmed.fastq",
-    output:
-        assembly = f"results/{{prefix}}/flye/{{barcode}}/{{sample}}/{{sample}}_flye.fasta",
-    params:
-        assembly = directory("results/{prefix}/flye/{barcode}/{sample}"),
-        size = config["genome_size"],
-        threads = config["threads"],
-        flye_options = config["flye_options"],
-        prefix = f"{{sample}}",
-    log:
-        "logs/{prefix}/flye/{barcode}/{sample}/{sample}.log"  
-    conda:
-        "envs/flye.yaml"
-    shell:
-        "flye --nano-hq {input.trimmed} -g {params.size} -o {params.assembly} -t {params.threads} {params.flye_options} && cp {params.assembly}/assembly.fasta {params.assembly}/{params.prefix}_flye.fasta &>{log}"
-
-
-rule medaka:
-    input:
-        flye_assembly = "results/{prefix}/flye/{barcode}/{sample}/{sample}_flye.fasta",
-        trimmed = "results/{prefix}/porechop/{barcode}/{sample}/{sample}.trimmed.fastq",
-    output:
-        medaka_out = f"results/{{prefix}}/medaka/{{barcode}}/{{sample}}/{{sample}}_medaka.fasta"
-    params:
-        medaka_out_dir = directory("results/{prefix}/medaka/{barcode}/{sample}"),
-        threads = config["threads"],
-        prefix = f"{{sample}}",
-        model = config["medaka_model"],
-    conda:
-        "envs/medaka.yaml"
-    log:
-        "logs/{prefix}/medaka/{barcode}/{sample}/{sample}.log"
-    shell:
-        "medaka_consensus -i {input.trimmed} -d {input.flye_assembly} -o {params.medaka_out_dir} -t {params.threads} -m {params.model} && bwa index {params.medaka_out_dir}/consensus.fasta && cp {params.medaka_out_dir}/consensus.fasta {params.medaka_out_dir}/{params.prefix}_medaka.fasta &>{log}"
-
-
 rule trimmomatic_pe:
     input:
         r1 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_L001_R1_001.fastq.gz")),
         r2 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_L001_R2_001.fastq.gz")),
+        
     output:
         r1 = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_R1_paired.fastq.gz",
         r2 = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_R2_paired.fastq.gz", 
@@ -126,6 +96,47 @@ rule trimmomatic_pe:
     shell:
         "trimmomatic PE {input.r1} {input.r2} {output.r1} {output.r1_unpaired} {output.r2} {output.r2_unpaired} -threads {params.threads} ILLUMINACLIP:{params.adapter_filepath}:{params.seed}:{params.palindrome_clip}:{params.simple_clip}:{params.minadapterlength}:{params.keep_both_reads} SLIDINGWINDOW:{params.window_size}:{params.window_size_quality} MINLEN:{params.minlength} HEADCROP:{params.headcrop_length} &>{log}"
 
+rule flye:
+    input:
+        # trimmed = "results/{prefix}/porechop/{barcode}/{sample}/{sample}.trimmed.fastq",
+        trimmed = lambda wildcards: expand(str("results/" + f"{wildcards.prefix}" + "/porechop/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}" + ".trimmed.fastq")),
+        
+    output:
+        # assembly = "results/{prefix}/flye/{barcode}/{sample}/{sample}_flye.fasta",
+        assembly = f"results/{{prefix}}/flye/{{barcode}}/{{sample}}/{{sample}}_flye.fasta",
+    params:
+        assembly_dir = "results/{prefix}/flye/{barcode}/{sample}/",
+        size = config["genome_size"],
+        threads = config["threads"],
+        flye_options = config["flye_options"],
+        prefix = "{sample}",
+    log:
+        "logs/{prefix}/flye/{barcode}/{sample}/{sample}_flye.log"  
+    conda:
+        "envs/flye.yaml"
+    shell:
+        "flye --nano-hq {input.trimmed} -g {params.size} -o {params.assembly_dir} -t {params.threads} {params.flye_options} && cp {params.assembly_dir}/assembly.fasta {params.assembly_dir}/{params.prefix}_flye.fasta &>{log}"
+
+rule medaka:
+    input:
+        # flye_assembly = "results/{prefix}/flye/{barcode}/{sample}/{sample}_flye.fasta",
+        # trimmed = "results/{prefix}/porechop/{barcode}/{sample}/{sample}.trimmed.fastq",
+        trimmed = lambda wildcards: expand(str("results/" + f"{wildcards.prefix}" + "/porechop/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}" + ".trimmed.fastq")),
+        flye_assembly = lambda wildcards: expand(str("results/" + f"{wildcards.prefix}" + "/flye/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}" + "_flye.fasta")),
+    output:
+        medaka_out = f"results/{{prefix}}/medaka/{{barcode}}/{{sample}}/{{sample}}_medaka.fasta"
+    params:
+        medaka_out_dir = "results/{prefix}/medaka/{barcode}/{sample}",
+        threads = config["threads"],
+        prefix = f"{{sample}}",
+        model = config["medaka_model"],
+    conda:
+        "envs/medaka.yaml"
+    log:
+        "logs/{prefix}/medaka/{barcode}/{sample}/{sample}.log"
+    shell:
+        "medaka_consensus -i {input.trimmed} -d {input.flye_assembly} -o {params.medaka_out_dir} -t {params.threads} -m {params.model} && cp {params.medaka_out_dir}/consensus.fasta {params.medaka_out_dir}/{params.prefix}_medaka.fasta &>{log}"
+
 rule bwaalign:
     input:
         r1 = lambda wildcards: expand(f"results/{wildcards.prefix}/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}_R1_paired.fastq.gz"),
@@ -139,7 +150,7 @@ rule bwaalign:
     conda:
         "envs/bwa.yaml"
     shell:
-        "bwa mem -t12 -a {input.medaka_assembly} {input.r1} > {output.samout_1} && bwa mem -t12 -a {input.medaka_assembly} {input.r2} > {output.samout_2}"
+        "bwa index {input.medaka_assembly} && bwa mem -t12 -a {input.medaka_assembly} {input.r1} > {output.samout_1} && bwa mem -t12 -a {input.medaka_assembly} {input.r2} > {output.samout_2}"
 
 rule bwaalign_unicycler:
     input:
@@ -167,7 +178,7 @@ rule polypolish:
     output:
         filtersam1 = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}_filtered_1.sam",
         filtersam2 = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}_filtered_2.sam",
-        flye_medaka_polypolish = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}_flye_medaka_polypolish.fasta",
+        flye_medaka_polypolish = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}/{{sample}}_flye_medaka_polypolish.fasta",
     params:
         threads = config["ncores"],
     conda:
@@ -183,7 +194,7 @@ rule unicycler:
     output:
         unicycler_assembly = f"results/{{prefix}}/unicycler/{{barcode}}/{{sample}}/{{sample}}_unicycler.fasta",
     params:
-        unicycler_assembly_out = directory("results/{{prefix}}/unicycler/{{barcode}}/{{sample}}"),
+        unicycler_assembly_out = "results/{prefix}/unicycler/{barcode}/{sample}",
         threads = config["ncores"],
         prefix = f"{{sample}}",
     conda:
@@ -213,35 +224,34 @@ rule prokka:
     input:
         unicycler_polypolish = f"results/{{prefix}}/polypolish_unicycler/{{barcode}}/{{sample}}/{{sample}}_unicycler_polypolish.fasta",
         unicycler_assembly = f"results/{{prefix}}/unicycler/{{barcode}}/{{sample}}/{{sample}}_unicycler.fasta",
-        flye_medaka_polypolish = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}_flye_medaka_polypolish.fasta",
+        flye_medaka_polypolish = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}/{{sample}}_flye_medaka_polypolish.fasta",
         medaka_assembly = f"results/{{prefix}}/medaka/{{barcode}}/{{sample}}/{{sample}}_medaka.fasta",
         flye_assembly = f"results/{{prefix}}/flye/{{barcode}}/{{sample}}/{{sample}}_flye.fasta",
     output:
-        #unicycler_annotation = f"results/{{prefix}}/prokka/{{barcode}}/{{sample}}/{{sample}}_unicycler/{{sample}}_unicycler.gff",
-        prokka_dir_out = directory("results/{prefix}/prokka/{barcode}/{sample}/"),
+        unicycler_annotation = f"results/{{prefix}}/prokka/{{barcode}}/{{sample}}/{{sample}}_unicycler.gff",
+        #prokka_dir_out = directory("results/{prefix}/prokka/{barcode}/{sample}/"),
     params:
         threads = config["ncores"],
-        prefix = f"{{sample}}",
+        prefix = "{sample}",
         options = config["prokka_options"],
-        prokka_dir = directory("results/{prefix}/prokka/{barcode}/{sample}/{sample}"),
+        prokka_dir = directory("results/{prefix}/prokka/{barcode}/{sample}/"),
     conda:
         "envs/prokka.yaml"
     shell:
-        "prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir}_unicycler -prefix {params.prefix}_unicycler {input.unicycler_assembly} && prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir}_flye -prefix {params.prefix}_flye {input.flye_assembly} && prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir}_medaka -prefix {params.prefix}_medaka {input.medaka_assembly} && prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir}_flye_medaka_polypolish -prefix {params.prefix}_flye_medaka_polypolish {input.flye_medaka_polypolish} && prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir}_unicycler_polypolish -prefix {params.prefix}_unicycler_polypolish {input.unicycler_polypolish}"
-
+        "prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir} -prefix {params.prefix}_unicycler {input.unicycler_assembly} && prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir} -prefix {params.prefix}_flye {input.flye_assembly} && prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir} -prefix {params.prefix}_medaka {input.medaka_assembly} && prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir} -prefix {params.prefix}_flye_medaka_polypolish {input.flye_medaka_polypolish} && prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir} -prefix {params.prefix}_unicycler_polypolish {input.unicycler_polypolish}"
 
 rule quast:
     input:
         unicycler_polypolish = f"results/{{prefix}}/polypolish_unicycler/{{barcode}}/{{sample}}/{{sample}}_unicycler_polypolish.fasta",
         unicycler_assembly = f"results/{{prefix}}/unicycler/{{barcode}}/{{sample}}/{{sample}}_unicycler.fasta",
-        flye_medaka_polypolish = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}_flye_medaka_polypolish.fasta",
+        flye_medaka_polypolish = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}/{{sample}}_flye_medaka_polypolish.fasta",
         medaka_assembly = f"results/{{prefix}}/medaka/{{barcode}}/{{sample}}/{{sample}}_medaka.fasta",
         flye_assembly = f"results/{{prefix}}/flye/{{barcode}}/{{sample}}/{{sample}}_flye.fasta",
     output:
-        quast_out = f"results/{{prefix}}/quast/{{barcode}}/{{sample}}/{{sample}}",
+        quast_out = f"results/{{prefix}}/quast/{{barcode}}/{{sample}}/{{sample}}_unicycler/report.txt",
     params:
         threads = config["ncores"],
-        quast_dir = directory("results/{{prefix}}/quast/{barcode}/{sample}"),
+        quast_dir = directory("results/{prefix}/quast/{barcode}/{sample}/{sample}"),
     conda:
         "envs/quast.yaml"
     shell:
@@ -252,32 +262,41 @@ rule busco:
     input:
         unicycler_polypolish = f"results/{{prefix}}/polypolish_unicycler/{{barcode}}/{{sample}}/{{sample}}_unicycler_polypolish.fasta",
         unicycler_assembly = f"results/{{prefix}}/unicycler/{{barcode}}/{{sample}}/{{sample}}_unicycler.fasta",
-        flye_medaka_polypolish = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}_flye_medaka_polypolish.fasta",
+        flye_medaka_polypolish = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}/{{sample}}_flye_medaka_polypolish.fasta",
         medaka_assembly = f"results/{{prefix}}/medaka/{{barcode}}/{{sample}}/{{sample}}_medaka.fasta",
         flye_assembly = f"results/{{prefix}}/flye/{{barcode}}/{{sample}}/{{sample}}_flye.fasta",
     output:
-        busco_out = directory("results/{prefix}/busco/{barcode}/{sample}/{sample}_busco/"),
+        busco_out = f"results/{{prefix}}/busco/{{barcode}}/{{sample}}/{{sample}}.unicycler/busco_unicycler.txt",
     params:
+        busco_outpath = f"results/{{prefix}}/busco/{{barcode}}/{{sample}}/{{sample}}",
+        unicycler_busco_out = f"short_summary.specific.bacteria_odb10.{{sample}}.unicycler.txt",
+        unicycler_polypolish_busco_out = f"short_summary.specific.bacteria_odb10.{{sample}}.unicycler_polypolish.txt",
+        flye_medaka_polypolish_busco_out = f"short_summary.specific.bacteria_odb10.{{sample}}.flye_medaka_polypolish.txt",
+        medaka_assembly_busco_out = f"short_summary.specific.bacteria_odb10.{{sample}}.medaka_assembly.txt",
+        flye_assembly_busco_out = f"short_summary.specific.bacteria_odb10.{{sample}}.flye_assembly.txt",
         threads = config["ncores"],
     conda:
         "envs/busco.yaml"
     shell:
-        "busco -i {input.unicycler_assembly} -m genome -l bacteria_odb10 -o {output.busco_out}"
+        "busco -f -i {input.unicycler_assembly} -m genome -l bacteria_odb10 -o {params.busco_outpath}.unicycler && cp {params.busco_outpath}.unicycler/{params.unicycler_busco_out} {params.busco_outpath}.unicycler/busco_unicycler.txt && busco -i {input.unicycler_polypolish} -m genome -l bacteria_odb10 -o {params.busco_outpath}.unicycler_polypolish && cp {params.busco_outpath}.unicycler_polypolish/{params.unicycler_polypolish_busco_out} {params.busco_outpath}.unicycler_polypolish/busco_unicycler_polypolish.txt && busco -i {input.flye_medaka_polypolish} -m genome -l bacteria_odb10 -o {params.busco_outpath}.flye_medaka_polypolish && cp {params.busco_outpath}.flye_medaka_polypolish/{params.flye_medaka_polypolish_busco_out} {params.busco_outpath}.flye_medaka_polypolish/busco_flye_medaka_polypolish.txt && busco -i {input.medaka_assembly} -m genome -l bacteria_odb10 -o {params.busco_outpath}.medaka_assembly && cp {params.busco_outpath}.medaka_assembly/{params.medaka_assembly_busco_out} {params.busco_outpath}.medaka_assembly/busco_medaka_assembly.txt && busco -i {input.flye_assembly} -m genome -l bacteria_odb10 -o {params.busco_outpath}.flye_assembly && cp {params.busco_outpath}.flye_assembly/{params.flye_assembly_busco_out} {params.busco_outpath}.flye_assembly/busco_flye_assembly.txt"
 
 rule multiqc:
     input:
-        prokka_dir_out = f"results/{{prefix}}/prokka/%s/%s" % (BARCODE[0], SAMPLE[0]),
-        busco_dir_out = f"results/{{prefix}}/busco/%s/%s/%s_busco" % (BARCODE[0], SAMPLE[0], SAMPLE[0]),
-        quast_dir_out = f"results/{{prefix}}/quast/%s/%s/%s" % (BARCODE[0], SAMPLE[0], SAMPLE[0]),
-        pycoqc_dir_out = f"results/{{prefix}}/pycoqc/{{prefix}}.html",
+        quast_out = f"results/{{prefix}}/quast/",
+        busco_dir_out = f"results/{{prefix}}/busco/",
+        unicycler_annotation = f"results/{{prefix}}/prokka/",
 
     output:
-        multiqc_out = directory("results/{prefix}/multiqc"),
+        multiqc_out = f"results/{{prefix}}/multiqc/multiqc_report.html",
     params:
         multiqc_out_dir = directory("results/{prefix}/multiqc/"),
+        prokka_dir_out = directory("results/{prefix}/prokka"),
+        quast_dir_out = directory("results/{prefix}/quast"),
+        pycoqc_dir_out = directory("results/{prefix}/pycoqc"),
+        busco_dir_out = directory("results/{prefix}/busco"),
         threads = config["ncores"],
     priority: 100000    
     conda:
         "envs/multiqc.yaml"
     shell:
-        "multiqc -o {params.multiqc_out_dir} -f {input.prokka_dir_out} {input.busco_dir_out} {input.quast_dir_out} {input.pycoqc_dir_out}"
+        "multiqc -o {params.multiqc_out_dir} -f {params.prokka_dir_out} {params.busco_dir_out} {params.quast_dir_out} {params.pycoqc_dir_out}"
