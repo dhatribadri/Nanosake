@@ -1,8 +1,7 @@
-name: bwa
+name: pilon
 channels:
   - conda-forge
   - bioconda
   - defaults
 dependencies:
-  - bwa
-  - samtools
+  - pilon
