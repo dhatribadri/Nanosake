@@ -1,5 +1,5 @@
 # Nanosake
 A Snakemake workflow to basecall, quality control and assemble Nanopore data.
 
-![Alt text](./dag.svg)
+![Alt text](./dag.pdf)
 
