@@ -30,10 +30,13 @@ rule all:
         pilon = expand("results/{prefix}/pilon/{combination}_flye_medaka_polypolish_pilon.fasta", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
         polypolish_unicycler = expand("results/{prefix}/polypolish_unicycler/{combination}_unicycler_polypolish.fasta", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
         pilon_unicycler = expand("results/{prefix}/pilon_unicycler/{combination}_unicycler_polypolish_pilon.fasta", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
+        minimap = expand("results/{prefix}/minimap/{combination}_minimap_pilon_sorted.bam", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
+        #minimap_pilon_unicycler = expand("results/{prefix}/minimap/{combination}_minimap_pilon_unicycler_sorted.bam", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
+        medaka_vcf = expand("results/{prefix}/medaka_vcf/{combination}_pilon.vcf", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
         prokka = expand("results/{prefix}/prokka/{combination}_unicycler.gff", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX,combination=COMBINATION_1),
         quast_out = expand("results/{prefix}/quast/{combination}_unicycler/report.txt", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
         busco_out = expand("results/{prefix}/busco/{combination}.unicycler/busco_unicycler.txt", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION_1),
-        multiqc_out = expand("results/{prefix}/multiqc/multiqc_report.html", prefix=PREFIX),
+        #multiqc_out = expand("results/{prefix}/multiqc/multiqc_report.html", prefix=PREFIX),
 
 rule pycoqc:
     input:
@@ -376,3 +379,46 @@ rule multiqc:
         "envs/multiqc.yaml"
     shell:
         "multiqc -o {params.multiqc_out_dir} -f {params.prokka_dir_out} {params.busco_dir_out} {params.quast_dir_out} {params.pycoqc_dir_out}"
+
+rule minimap:
+    input:
+        trimmed = lambda wildcards: expand(str("results/" + f"{wildcards.prefix}" + "/porechop/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}" + ".trimmed.fastq")),
+        flye_medaka_polypolish_pilon = lambda wildcards: expand(f"results/{wildcards.prefix}/pilon/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}" + "_flye_medaka_polypolish_pilon.fasta"),
+        unicycler_polypolish_pilon = lambda wildcards: expand(f"results/{wildcards.prefix}/pilon_unicycler/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}" + "_unicycler_polypolish_pilon.fasta"),
+    output:
+        minimap_pilon_bam = f"results/{{prefix}}/minimap/{{barcode}}/{{sample}}/{{sample}}_minimap_pilon_sorted.bam",
+        minimap_pilon_unicycler_bam = f"results/{{prefix}}/minimap/{{barcode}}/{{sample}}/{{sample}}_minimap_pilon_unicycler_sorted.bam",
+    params:
+        minimap_dir = "results/{prefix}/minimap/{barcode}/{sample}/",
+        threads = config["threads"],
+        prefix = "{sample}",
+        # reference = config["reference_path"],
+    log:
+        "logs/{prefix}/minimap/{barcode}/{sample}/{sample}_minimap.log"  
+    conda:
+        "envs/minimap.yaml"
+    shell:
+        "minimap2 {input.flye_medaka_polypolish_pilon} {input.trimmed} -x map-ont -t {params.threads} -Y -a | samtools sort -@ 6 -l 9 -m 9G > {params.minimap_dir}/{params.prefix}_minimap_pilon_sorted.bam && samtools index {params.minimap_dir}/{params.prefix}_minimap_pilon_sorted.bam && minimap2 {input.unicycler_polypolish_pilon} {input.trimmed} -x map-ont -t {params.threads} -Y -a | samtools sort -@ 6 -l 9 -m 9G > {params.minimap_dir}/{params.prefix}_minimap_pilon_unicycler_sorted.bam && samtools index {params.minimap_dir}/{params.prefix}_minimap_pilon_unicycler_sorted.bam"
+
+
+rule medaka_variant_call:
+    input:
+        #trimmed = lambda wildcards: expand(str("results/" + f"{wildcards.prefix}" + "/porechop/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}" + ".trimmed.fastq")),
+        minimap_pilon_bam = lambda wildcards: expand(f"results/{wildcards.prefix}/minimap/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}_minimap_pilon_sorted.bam"),
+        flye_medaka_polypolish_pilon = lambda wildcards: expand(f"results/{wildcards.prefix}/pilon/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}" + "_flye_medaka_polypolish_pilon.fasta"),
+        minimap_pilon_unicycler_bam = lambda wildcards: expand(f"results/{wildcards.prefix}/minimap/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}_minimap_pilon_unicycler_sorted.bam"),
+        unicycler_polypolish_pilon = lambda wildcards: expand(f"results/{wildcards.prefix}/pilon_unicycler/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}" + "_unicycler_polypolish_pilon.fasta"),
+    output:
+        medaka_pilon_vcf = f"results/{{prefix}}/medaka_vcf/{{barcode}}/{{sample}}/{{sample}}_pilon.vcf"
+    params:
+        medaka_out_dir = "results/{prefix}/medaka_vcf/{barcode}/{sample}",
+        threads = config["threads"],
+        prefix = f"{{sample}}",
+        model = config["medaka_model"],
+        # reference = config["reference_path"],
+    conda:
+        "envs/medaka.yaml"
+    log:
+        "logs/{prefix}/medaka/{barcode}/{sample}/{sample}.log"
+    shell:
+        "medaka_variant -i {input.minimap_pilon_bam} -o {params.medaka_out_dir} -f {input.flye_medaka_polypolish_pilon} -t {params.threads} -m {params.model} && medaka_variant -i {input.minimap_pilon_unicycler_bam} -o {params.medaka_out_dir} -f {input.unicycler_polypolish_pilon} -t {params.threads} -m {params.model}"
