@@ -21,7 +21,7 @@ rule all:
     input:
         #pycoqc_report = expand("results/{prefix}/pycoqc/{prefix}.html", prefix=PREFIX),
         trimmed = expand("results/{prefix}/filtlong/{combination}.trimmed.fastq.gz", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION),
-	    nanoplot = expand("results/{prefix}/nanoplot/{combination}_preqc.html", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION),
+	nanoplot = expand("results/{prefix}/nanoplot/{combination}_preqc.html", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION),
         flye_assembly = expand("results/{prefix}/flye/{combination}_flye.fasta", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION),
         flye_circ_assembly = expand("results/{prefix}/flye/{combination}_flye_circ.fasta", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION),
         medaka_out = expand("results/{prefix}/medaka/{combination}_medaka.fasta", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION),
