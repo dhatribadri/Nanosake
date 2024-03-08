@@ -1,8 +1,5 @@
-name: bwa
+name: polypolish
 channels:
-  - conda-forge
   - bioconda
-  - defaults
 dependencies:
-  - bwa
   - polypolish

@@ -1,9 +1,6 @@
 name: medaka
 channels:
-  - conda-forge
   - bioconda
-  - defaults
 dependencies:
-  - openssl=1.0
   - medaka
-  - bwa
+  - bcftools

@@ -1,8 +1,8 @@
-name: porechop
+name: minimap
 channels:
   - conda-forge
   - bioconda
   - defaults
 dependencies:
-  - porechop
-  - seqkit
+  - minimap2
+  - samtools
