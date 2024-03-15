@@ -93,12 +93,12 @@ rule nanoplot:
     log:
         "logs/{prefix}/nanoplot/{barcode}/{sample}/{sample}.log"
     params:
-        outdir="results/{prefix}/nanoplot/{barcode}/{sample}/{sample}",
+        outdir="results/{prefix}/nanoplot/{barcode}/{sample}",
         prefix="{sample}",
     conda:
         "envs/nanoplot.yaml"
     shell:
-        "cat {input.longreads}/*.fastq.gz > /tmp/{params.prefix}.gz && NanoPlot -o {params.outdir} -p {params.prefix}_preqc --tsv_stats --info_in_report --N50 --title {params.prefix}_preqc --fastq /tmp/{params.prefix}.gz && NanoPlot -o {params.outdir} -p {params.prefix}_preqc --tsv_stats --info_in_report --N50 --title {params.prefix}_postqc --fastq {input.trimmed} && rm /tmp/{params.prefix}.gz"
+        "cat {input.longreads}/*.fastq.gz > /tmp/{params.prefix}.gz && NanoPlot -o {params.outdir} -p {params.prefix}_preqc --tsv_stats --info_in_report --N50 --title {params.prefix}_preqc --fastq /tmp/{params.prefix}.gz && NanoPlot -o {params.outdir} -p {params.prefix}_postqc --tsv_stats --info_in_report --N50 --title {params.prefix}_postqc --fastq {input.trimmed} && rm /tmp/{params.prefix}.gz"
 
 rule trimmomatic_pe:
     input:
