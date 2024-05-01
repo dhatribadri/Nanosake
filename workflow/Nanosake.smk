@@ -61,7 +61,6 @@ rule pycoqc:
 #     shell:
 #         'porechop -i {input.longreads} -o {output.trimmed} -t 8 --discard_middle &>{log}'
 
-# fails when called using singularity 
 rule nanopore_filtlong:
     input:
         longreads = config["long_reads"] + "/{barcode}/",
@@ -369,8 +368,6 @@ rule prokka:
     shell:
         "prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir} -prefix {params.prefix}_unicycler {input.unicycler_assembly} && prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir} -prefix {params.prefix}_flye {input.flye_assembly} && prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir} -prefix {params.prefix}_flye_medaka_polypolish {input.flye_medaka_polypolish} && prokka {params.options} --strain {params.prefix} -outdir {params.prokka_dir} -prefix {params.prefix}_unicycler_polypolish {input.unicycler_polypolish}"
 
-# quast command not found error
-# singularity wont work
 rule quast:
     input:
         unicycler_polypolish = f"results/{{prefix}}/polypolish_unicycler/{{barcode}}/{{sample}}/{{sample}}_unicycler_polypolish.fasta",
@@ -419,7 +416,6 @@ rule multiqc:
         quast_out = f"results/{{prefix}}/quast/",
         busco_dir_out = f"results/{{prefix}}/busco/",
         unicycler_annotation = f"results/{{prefix}}/prokka/",
-
     output:
         multiqc_out = f"results/{{prefix}}/multiqc/multiqc_report.html",
     params:
