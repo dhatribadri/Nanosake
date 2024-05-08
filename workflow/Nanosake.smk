@@ -101,11 +101,11 @@ rule nanoplot:
 
 rule trimmomatic_pe:
     input:
-        r1 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_R1.fastq.gz")),
-        r2 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_R2.fastq.gz")),  
+        r1 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_L001_R1_001.fastq.gz")),
+        r2 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_L001_R2_001.fastq.gz")),
     output:
-        r1 = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_L001_R1_paired.fastq.gz",
-        r2 = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_L001_R2_paired.fastq.gz", 
+        r1 = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_R1_paired.fastq.gz",
+        r2 = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_R2_paired.fastq.gz", 
         # reads where trimming entirely removed the mate
         r1_unpaired = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_R1_unpaired.fastq.gz",
         r2_unpaired = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_R2_unpaired.fastq.gz",
@@ -123,8 +123,8 @@ rule trimmomatic_pe:
         threads = config["ncores"],
     log:
         "logs/{prefix}/trimmomatic/{barcode}/{sample}/{sample}.log"
-    # conda:
-    #     "envs/trimmomatic.yaml"
+    #conda:
+        #"envs/trimmomatic.yaml"
     singularity:
         "docker://staphb/trimmomatic:0.39"
     shell:
