@@ -30,6 +30,7 @@ rule all:
         prokka = expand("results/{prefix}/prokka/{combination}_unicycler.gff", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX,combination=COMBINATION),
         quast_out = expand("results/{prefix}/quast/{combination}_unicycler/report.txt", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION),
         busco_out = expand("results/{prefix}/busco/{combination}.unicycler/busco_unicycler.txt", barcode=BARCODE, sample=SAMPLE, prefix=PREFIX, combination=COMBINATION),
+        #multiqc_report = expand("results/{prefix}/multiqc/multiqc_report.html",prefix=PREFIX)
 
 rule pycoqc:
     input:
@@ -100,11 +101,11 @@ rule nanoplot:
 
 rule trimmomatic_pe:
     input:
-        r1 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_L001_R1_001.fastq.gz")),
-        r2 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_L001_R2_001.fastq.gz")),  
+        r1 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_R1.fastq.gz")),
+        r2 = lambda wildcards: expand(str(config["short_reads"] + "/" + f"{wildcards.sample}_R2.fastq.gz")),  
     output:
-        r1 = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_R1_paired.fastq.gz",
-        r2 = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_R2_paired.fastq.gz", 
+        r1 = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_L001_R1_paired.fastq.gz",
+        r2 = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_L001_R2_paired.fastq.gz", 
         # reads where trimming entirely removed the mate
         r1_unpaired = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_R1_unpaired.fastq.gz",
         r2_unpaired = f"results/{{prefix}}/trimmomatic/{{barcode}}/{{sample}}/{{sample}}_R2_unpaired.fastq.gz",
@@ -149,7 +150,6 @@ rule flye:
         "docker://staphb/flye:2.9.3"
     shell:
         "flye --nano-hq {input.trimmed} -g {params.size} -o {params.assembly_dir} -t {params.threads} {params.flye_options} && cp {params.assembly_dir}/assembly.fasta {params.assembly_dir}/{params.prefix}_flye.fasta &>{log}"
-
 
 rule flye_add_circ:
     input:
@@ -213,32 +213,33 @@ rule bwaalign:
     shell:
         "bwa index {input.medaka_assembly} && bwa mem -t12 -a {input.medaka_assembly} {input.r1} > {output.samout_1} && bwa mem -t12 -a {input.medaka_assembly} {input.r2} > {output.samout_2} && bwa mem -t12 -a {input.medaka_assembly} {input.r1_unpaired} > {output.samout_3} && bwa mem -t12 -a {input.medaka_assembly} {input.r2_unpaired} > {output.samout_4}"
 
-rule bwaalign_polypolish:
-    input:
-        r1 = lambda wildcards: expand(f"results/{wildcards.prefix}/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}_R1_paired.fastq.gz"),
-        r2 = lambda wildcards: expand(f"results/{wildcards.prefix}/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}_R2_paired.fastq.gz"),
-        polypolish_assembly = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}/{{sample}}_flye_medaka_polypolish.fasta"
-    output:
-        samout = f"results/{{prefix}}/pilon/{{barcode}}/{{sample}}/{{sample}}.sam"
-    params:
-        threads = config["ncores"],
+# Deprecated: This rule was used for pilon 
+#rule bwaalign_polypolish:
+#    input:
+#        r1 = lambda wildcards: expand(f"results/{wildcards.prefix}/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}_R1_paired.fastq.gz"),
+#        r2 = lambda wildcards: expand(f"results/{wildcards.prefix}/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}_R2_paired.fastq.gz"),
+#        polypolish_assembly = f"results/{{prefix}}/polypolish/{{barcode}}/{{sample}}/{{sample}}_flye_medaka_polypolish.fasta"
+#    output:
+#        samout = f"results/{{prefix}}/pilon/{{barcode}}/{{sample}}/{{sample}}.sam"
+#    params:
+#        threads = config["ncores"],
     #conda:
         #"envs/bwa.yaml"
-    singularity:
-        "docker://staphb/bwa:0.7.17"
-    shell:
-        "bwa index {input.polypolish_assembly} && bwa mem -t12 {input.polypolish_assembly} {input.r1} {input.r2} > {output.samout}"
+#    singularity:
+#        "docker://staphb/bwa:0.7.17"
+#    shell:
+#        "bwa index {input.polypolish_assembly} && bwa mem -t12 {input.polypolish_assembly} {input.r1} {input.r2} > {output.samout}"
 
-rule bwaalign_polypolish_samtools_sort_index:
-    input:
-        samout = lambda wildcards: expand(f"results/{wildcards.prefix}/pilon/{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}.sam")
-    output:
-        bamout = f"results/{{prefix}}/pilon/{{barcode}}/{{sample}}/{{sample}}.bam",
-        bamout_sorted = f"results/{{prefix}}/pilon/{{barcode}}/{{sample}}/{{sample}}_sorted.bam",
-    singularity:
-        "docker://staphb/samtools:1.20"
-    shell:
-        "samtools view -Sb {input.samout} > {output.bamout} && samtools sort -o {output.bamout_sorted} {output.bamout} && samtools index {output.bamout_sorted}"
+#rule bwaalign_polypolish_samtools_sort_index:
+#    input:
+#        samout = lambda wildcards: expand(f"results/{wildcards.prefix}/pilon/{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}.sam")
+#    output:
+#        bamout = f"results/{{prefix}}/pilon/{{barcode}}/{{sample}}/{{sample}}.bam",
+#        bamout_sorted = f"results/{{prefix}}/pilon/{{barcode}}/{{sample}}/{{sample}}_sorted.bam",
+#    singularity:
+#        "docker://staphb/samtools:1.20"
+#    shell:
+#        "samtools view -Sb {input.samout} > {output.bamout} && samtools sort -o {output.bamout_sorted} {output.bamout} && samtools index {output.bamout_sorted}"
 
 rule bwaalign_unicycler:
     input:
@@ -321,32 +322,33 @@ rule polypolish_unicycler:
     shell:
         "polypolish filter --in1 {input.samout_1} --in2 {input.samout_2} --out1 {output.filtersam1} --out2 {output.filtersam2} && polypolish polish {input.unicycler_assembly} {output.filtersam1} {output.filtersam2} > {output.unicycler_polypolish}"
 
-rule bwaalign_polypolish_unicycler:
-    input:
-        r1 = lambda wildcards: expand(f"results/{wildcards.prefix}/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}_R1_paired.fastq.gz"),
-        r2 = lambda wildcards: expand(f"results/{wildcards.prefix}/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}_R2_paired.fastq.gz"),
-        polypolish_unicycler_assembly = f"results/{{prefix}}/polypolish_unicycler/{{barcode}}/{{sample}}/{{sample}}_unicycler_polypolish.fasta"
-    output:
-        samout = f"results/{{prefix}}/pilon_unicycler/{{barcode}}/{{sample}}/{{sample}}.sam"
-    params:
-        threads = config["ncores"],
+# # Deprecated: This rule was used for pilon
+#rule bwaalign_polypolish_unicycler:
+#    input:
+#        r1 = lambda wildcards: expand(f"results/{wildcards.prefix}/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}_R1_paired.fastq.gz"),
+#        r2 = lambda wildcards: expand(f"results/{wildcards.prefix}/trimmomatic/" + f"{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}_R2_paired.fastq.gz"),
+#        polypolish_unicycler_assembly = f"results/{{prefix}}/polypolish_unicycler/{{barcode}}/{{sample}}/{{sample}}_unicycler_polypolish.fasta"
+#    output:
+#        samout = f"results/{{prefix}}/pilon_unicycler/{{barcode}}/{{sample}}/{{sample}}.sam"
+#    params:
+#        threads = config["ncores"],
     #conda:
         #"envs/bwa.yaml"
-    singularity:
-        "docker://staphb/bwa:0.7.17"
-    shell:
-        "bwa index {input.polypolish_unicycler_assembly} && bwa mem -t12 {input.polypolish_unicycler_assembly} {input.r1} {input.r2} > {output.samout}"
+#    singularity:
+#        "docker://staphb/bwa:0.7.17"
+#    shell:
+#        "bwa index {input.polypolish_unicycler_assembly} && bwa mem -t12 {input.polypolish_unicycler_assembly} {input.r1} {input.r2} > {output.samout}"
     
-rule bwaalign_polypolish_unicycler_samtools_sort_index:
-    input:
-        samout = lambda wildcards: expand(f"results/{wildcards.prefix}/pilon_unicycler/{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}.sam"),
-    output:
-        bamout = f"results/{{prefix}}/pilon_unicycler/{{barcode}}/{{sample}}/{{sample}}.bam",
-        bamout_sorted = f"results/{{prefix}}/pilon_unicycler/{{barcode}}/{{sample}}/{{sample}}_sorted.bam",
-    singularity:
-        "docker://staphb/samtools:1.20"
-    shell:
-        "samtools view -Sb {input.samout} > {output.bamout} && samtools sort -o {output.bamout_sorted} {output.bamout} && samtools index {output.bamout_sorted}"
+#rule bwaalign_polypolish_unicycler_samtools_sort_index:
+#    input:
+#        samout = lambda wildcards: expand(f"results/{wildcards.prefix}/pilon_unicycler/{wildcards.barcode}/{wildcards.sample}/{wildcards.sample}.sam"),
+#    output:
+#        bamout = f"results/{{prefix}}/pilon_unicycler/{{barcode}}/{{sample}}/{{sample}}.bam",
+#        bamout_sorted = f"results/{{prefix}}/pilon_unicycler/{{barcode}}/{{sample}}/{{sample}}_sorted.bam",
+#    singularity:
+#        "docker://staphb/samtools:1.20"
+#    shell:
+#        "samtools view -Sb {input.samout} > {output.bamout} && samtools sort -o {output.bamout_sorted} {output.bamout} && samtools index {output.bamout_sorted}"
 
 rule prokka:
     input:
@@ -433,4 +435,3 @@ rule multiqc:
     shell:
         #{params.pycoqc_dir_out}
         "multiqc -o {params.multiqc_out_dir} -f {params.prokka_dir_out} {params.busco_dir_out} {params.quast_dir_out}"
-
